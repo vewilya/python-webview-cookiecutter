@@ -1,0 +1,13 @@
+[project]
+name = "{{cookiecutter.project_slug}}"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "sounddevice",
+    "numpy",
+    "pywebview",
+    "soundfile",
+]
+
+[project.scripts]
+dsp = "main:main"

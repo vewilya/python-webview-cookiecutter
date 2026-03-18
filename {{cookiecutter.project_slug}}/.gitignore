@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# DSP prototype
+recordings/
+config.json
+
+# macOS
+.DS_Store

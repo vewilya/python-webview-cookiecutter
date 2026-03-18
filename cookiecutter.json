@@ -1,0 +1,7 @@
+{
+  "project_name": "My DSP Prototype",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '-') }}",
+  "project_subtitle": "DSP Prototype",
+  "sample_rate": 48000,
+  "block_size": 256
+}

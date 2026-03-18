@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Run",
+    "command": "uv run main.py",
+    "reveal": "always",
+  },
+  {
+    "label": "Run + Record",
+    "command": "uv run main.py --record",
+    "reveal": "always",
+  },
+  {
+    "label": "Setup",
+    "command": "uv run main.py --setup",
+    "reveal": "always",
+  },
+  {
+    "label": "Sync",
+    "command": "uv sync",
+    "reveal": "always",
+  },
+]

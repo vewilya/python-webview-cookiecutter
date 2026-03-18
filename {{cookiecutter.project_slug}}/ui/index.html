@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{{cookiecutter.project_name}}</title>
+        <style>
+            :root {
+                --bg: #1a1a1a;
+                --surface: #242424;
+                --border: #333;
+                --accent: #c87a4a;
+                --text: #ddd;
+                --muted: #777;
+                --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font);
+                padding: 24px;
+            }
+            h1 {
+                font-size: 11px;
+                letter-spacing: 4px;
+                text-transform: uppercase;
+                color: var(--accent);
+                margin-bottom: 4px;
+            }
+            #subtitle {
+                font-size: 10px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 24px;
+            }
+
+            .param {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin-bottom: 20px;
+            }
+            .param-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+            }
+            .param-name {
+                font-size: 10px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: var(--muted);
+            }
+            .param-value {
+                font-size: 12px;
+                color: var(--text);
+                font-variant-numeric: tabular-nums;
+            }
+
+            input[type="range"] {
+                -webkit-appearance: none;
+                width: 100%;
+                height: 2px;
+                background: var(--border);
+                border-radius: 1px;
+                outline: none;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--accent);
+                cursor: pointer;
+            }
+
+            .toggle {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .toggle input {
+                display: none;
+            }
+            .toggle-track {
+                width: 36px;
+                height: 18px;
+                border-radius: 9px;
+                background: var(--border);
+                cursor: pointer;
+                position: relative;
+                transition: background 0.2s;
+            }
+            .toggle-track.on {
+                background: var(--accent);
+            }
+            .toggle-thumb {
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #fff;
+                transition: left 0.2s;
+            }
+            .toggle-track.on .toggle-thumb {
+                left: 21px;
+            }
+
+            select {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                color: var(--text);
+                font-family: var(--font);
+                font-size: 11px;
+                padding: 5px 8px;
+                border-radius: 2px;
+                outline: none;
+                width: 100%;
+            }
+
+            #status {
+                font-size: 9px;
+                color: var(--muted);
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                margin-top: 32px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>{{cookiecutter.project_name}}</h1>
+        <div id="subtitle">{{cookiecutter.project_subtitle}}</div>
+        <div id="params"></div>
+        <div id="status">Connecting...</div>
+
+        <script>
+            const fmt = (v, type) => {
+                if (type === "float") return parseFloat(v).toFixed(2);
+                if (type === "bool") return v ? "on" : "off";
+                return v;
+            };
+
+            async function build() {
+                const raw = await pywebview.api.get_params();
+                const state = JSON.parse(await pywebview.api.get_state());
+                const params = JSON.parse(raw);
+                const cont = document.getElementById("params");
+
+                params.forEach((p) => {
+                    const [name, type, def, min, max, choices] = p;
+                    const wrap = document.createElement("div");
+                    wrap.className = "param";
+
+                    const header = `<div class="param-header">
+      <span class="param-name">${name.replace(/_/g, " ")}</span>
+      <span class="param-value" id="val-${name}">${fmt(state[name], type)}</span>
+    </div>`;
+
+                    let control = "";
+
+                    if (type === "float" || type === "int") {
+                        const step = type === "int" ? 1 : 0.01;
+                        control = `<input type="range" id="ctrl-${name}"
+        min="${min}" max="${max}" step="${step}" value="${state[name]}"/>`;
+                    } else if (type === "bool") {
+                        const on = state[name] ? "on" : "";
+                        control = `<div class="toggle">
+        <div class="toggle-track ${on}" id="ctrl-${name}">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>`;
+                    } else if (type === "enum") {
+                        const opts = (choices || [])
+                            .map(
+                                (c) =>
+                                    `<option value="${c}" ${c === state[name] ? "selected" : ""}>${c}</option>`,
+                            )
+                            .join("");
+                        control = `<select id="ctrl-${name}">${opts}</select>`;
+                    }
+
+                    wrap.innerHTML = header + control;
+                    cont.appendChild(wrap);
+
+                    // Wire events
+                    const el = document.getElementById(`ctrl-${name}`);
+                    const valEl = document.getElementById(`val-${name}`);
+
+                    if (type === "float" || type === "int") {
+                        el.addEventListener("input", () => {
+                            const v =
+                                type === "int"
+                                    ? parseInt(el.value)
+                                    : parseFloat(el.value);
+                            valEl.textContent = fmt(v, type);
+                            pywebview.api.set_param(name, v);
+                        });
+                    } else if (type === "bool") {
+                        el.addEventListener("click", () => {
+                            el.classList.toggle("on");
+                            const v = el.classList.contains("on");
+                            valEl.textContent = fmt(v, type);
+                            pywebview.api.set_param(name, v);
+                        });
+                    } else if (type === "enum") {
+                        el.addEventListener("change", () => {
+                            valEl.textContent = el.value;
+                            pywebview.api.set_param(name, el.value);
+                        });
+                    }
+                });
+
+                document.getElementById("status").textContent = "Streaming";
+            }
+
+            // pywebview injects its API asynchronously
+            window.addEventListener("pywebviewready", build);
+        </script>
+    </body>
+</html>

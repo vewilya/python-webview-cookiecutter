@@ -34,7 +34,13 @@ uv run main.py
 
 Open `processor.py` and edit `PARAMS`. The webview builds itself from this list at runtime:
 
+
+
 ```python
+# Format: (name, type, default, min, max)          for float / int
+#         (name, "bool", default, None, None)       for toggle
+#         (name, "enum", default, None, None, [...]) for dropdown
+
 PARAMS = [
     ("input_gain",  "float", 0.0, -24.0, 24.0),
     ("feedback",    "float", 0.0,   0.0,  1.0),
